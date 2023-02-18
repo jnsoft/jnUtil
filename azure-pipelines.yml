@@ -1,0 +1,96 @@
+# ASP.NET Core (.NET Framework)
+# Build and test ASP.NET Core projects targeting the full .NET Framework.
+# Add steps that publish symbols, save build artifacts, and more:
+# https://docs.microsoft.com/azure/devops/pipelines/languages/dotnet-core
+
+trigger:
+  branches:
+    include:
+    - master
+    - dev
+  paths:
+    exclude:
+      - README.md
+      - azure-pipelines.yml
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  solution : '**/*.sln'
+  projectspath : '**/**/*.csproj'
+  buildPlatform : 'Any CPU'
+  buildConfiguration : 'Release'
+  appName : 'jnUtil'
+
+name: '$(Date:yyyyMMdd)$(Rev:.r)'
+
+steps:
+
+- task: PowerShell@2
+  displayName: 'Get version number from project files'
+  inputs:
+    targetType: 'inline'
+    script: |
+      $xml = [Xml] (Get-Content **\$(appName).csproj)
+      $version = $xml.Project.PropertyGroup.Version
+      echo $version
+      echo "##vso[task.setvariable variable=version]$version"
+- task: PowerShell@2
+  displayName: 'Set version number'
+  inputs:
+    targetType: 'inline'
+    script: |
+      [string] $buildName = "$(version).$(Build.BuildNumber)"
+      echo "Set name of build to $buildName"
+      echo "##vso[build.updatebuildnumber]$buildName"
+
+#- task: NuGetToolInstaller@1
+
+#- task: NuGetCommand@2
+#  displayName: 'Nuget restore'
+#  inputs:
+#    restoreSolution: '$(solution)'
+
+- task: DotNetCoreCLI@2
+  inputs:
+    command: 'restore'
+    projects: '$(solution)'
+    feedsToUse: 'select'
+    arguments: --configuration $(buildConfiguration)
+
+- task: VSBuild@1
+  displayName: 'Build solution'
+  inputs:
+    solution: '$(solution)'
+    msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:DesktopBuildPackageLocation="$(build.artifactStagingDirectory)\WebApp.zip" /p:DeployIisAppPath="Default Web Site"'
+    platform: '$(buildPlatform)'
+    configuration: '$(buildConfiguration)'
+
+#- task: VSTest@2
+#  inputs:
+#    platform: '$(buildPlatform)'
+#    configuration: '$(buildConfiguration)'
+    
+- task: DotNetCoreCLI@2
+  displayName: 'Test'
+  inputs:
+    command: 'test'
+    projects: '**/*Tests/*.csproj'
+    arguments: '--configuration $(buildConfiguration) --collect "Code coverage"'
+    testRunTitle: 'Run unit tests'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Pack'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))
+  inputs:
+    command: 'pack'
+    packagesToPack: '**/$(appName).csproj'
+    includesymbols: false
+    versioningScheme: 'off'
+
+- script: |
+   dotnet nuget push $(Build.ArtifactStagingDirectory)\*.nupkg --skip-duplicate --api-key $(NugetKey) --source https://api.nuget.org/v3/index.json
+  failOnStderr: true
+  displayName: 'Publish NuGet Package'
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/master'))

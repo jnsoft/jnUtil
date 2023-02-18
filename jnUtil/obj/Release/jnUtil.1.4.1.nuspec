@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>jnUtil</id>
+    <version>1.4.1</version>
+    <authors>jnx</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <description>Package Description</description>
+    <dependencies>
+      <group targetFramework=".NETCoreApp3.1">
+        <dependency id="System.Security.Cryptography.Cng" version="4.7.0" exclude="Build,Analyzers" />
+        <dependency id="System.Security.Cryptography.ProtectedData" version="4.7.0" exclude="Build,Analyzers" />
+        <dependency id="System.Security.Cryptography.Xml" version="4.7.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="C:\Users\jnx\source\repos\jnUtil\jnUtil\bin\Release\netcoreapp3.1\jnUtil.dll" target="lib\netcoreapp3.1\jnUtil.dll" />
+  </files>
+</package>
