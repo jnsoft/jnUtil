@@ -1,9 +1,0 @@
-c:\users\jnx\source\repos\jnUtil\jnUtil\bin\Debug\netcoreapp2.0\jnUtil.deps.json
-c:\users\jnx\source\repos\jnUtil\jnUtil\bin\Debug\netcoreapp2.0\jnUtil.dll
-c:\users\jnx\source\repos\jnUtil\jnUtil\bin\Debug\netcoreapp2.0\jnUtil.pdb
-c:\users\jnx\source\repos\jnUtil\jnUtil\obj\Debug\netcoreapp2.0\jnUtil.csprojResolveAssemblyReference.cache
-c:\users\jnx\source\repos\jnUtil\jnUtil\obj\Debug\netcoreapp2.0\jnUtil.csproj.CoreCompileInputs.cache
-c:\users\jnx\source\repos\jnUtil\jnUtil\obj\Debug\netcoreapp2.0\jnUtil.AssemblyInfoInputs.cache
-c:\users\jnx\source\repos\jnUtil\jnUtil\obj\Debug\netcoreapp2.0\jnUtil.AssemblyInfo.cs
-c:\users\jnx\source\repos\jnUtil\jnUtil\obj\Debug\netcoreapp2.0\jnUtil.dll
-c:\users\jnx\source\repos\jnUtil\jnUtil\obj\Debug\netcoreapp2.0\jnUtil.pdb
