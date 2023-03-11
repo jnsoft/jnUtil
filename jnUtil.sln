@@ -3,9 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.2.32616.157
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jnutil", "jnutil\jnutil.csproj", "{06B16D90-B5EB-4CD3-814F-0E33C8ADD162}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "jnUtil", "jnutil\jnUtil.csproj", "{06B16D90-B5EB-4CD3-814F-0E33C8ADD162}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jnutilTests", "jnutilTests\jnutilTests.csproj", "{28CCABF5-8B15-4007-B2CC-EF168D9D88F5}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "jnUtilTests", "jnUtilTests\jnUtilTests.csproj", "{28CCABF5-8B15-4007-B2CC-EF168D9D88F5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
