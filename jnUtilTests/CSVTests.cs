@@ -9,14 +9,13 @@ namespace jnUtilTests
     [TestClass]
     public class CSVTests
     {
+        private string CSV_STR = $"1,1.0,\",\"{Environment.NewLine}2,2.0,;";
+
         [TestMethod]
         public void ReadCSV()
         {
-            // Arrange
-            string csv = "1,1.0,\",\"\r\n2,2.0,;";
-
             // Act
-            string[][] parsed = CSVHelper.ReadCSV(csv, ",", false);
+            string[][] parsed = CSVHelper.ReadCSV(CSV_STR, ",", false);
 
             // Assert
             Assert.IsNotNull(parsed);
@@ -44,7 +43,7 @@ namespace jnUtilTests
             // Assert
             Assert.IsNotNull(csv);
 
-            Assert.AreEqual("1,1.0,\",\"\r\n2,2.0,;", csv);
+            Assert.AreEqual(CSV_STR, csv);
         }
     }
 }
