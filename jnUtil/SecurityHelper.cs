@@ -907,26 +907,25 @@ namespace jnUtil
         // returns private key and outputs public key
         public static byte[] GeneratePKIPair(out byte[] publicKey)
         {
-            using (ECDiffieHellmanCng dh = new ECDiffieHellmanCng())
+            using (ECDiffieHellman dh = ECDiffieHellman.Create())
             {
-                dh.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
-                dh.HashAlgorithm = CngAlgorithm.Sha256;
-                publicKey = dh.PublicKey.ToByteArray();
-                return dh.Key.Export(CngKeyBlobFormat.EccPrivateBlob);
+                publicKey = dh.ExportSubjectPublicKeyInfo();
+                return dh.ExportECPrivateKey();                
             }
         }
 
         // you need a generated key pair and the recievers public key
         public static byte[] DeriveSymmetricKey(byte[] myPrivateKey, byte[] otherPublicKey)
         {
-            CngKey prk = CngKey.Import(myPrivateKey, CngKeyBlobFormat.EccPrivateBlob);
-            CngKey puk = CngKey.Import(otherPublicKey, CngKeyBlobFormat.EccPublicBlob);
-
-            using (ECDiffieHellmanCng dh = new ECDiffieHellmanCng(prk))
+            using (ECDiffieHellman ecdh = ECDiffieHellman.Create())
             {
-                dh.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
-                dh.HashAlgorithm = CngAlgorithm.Sha256;
-                return dh.DeriveKeyMaterial(puk);
+                ecdh.ImportECPrivateKey(myPrivateKey, out _);
+                using (ECDiffieHellman otherEcdh = ECDiffieHellman.Create())
+                {
+                    otherEcdh.ImportSubjectPublicKeyInfo(otherPublicKey, out _);
+                    using ECDiffieHellmanPublicKey otherPublicKeyObj = otherEcdh.PublicKey;
+                    return ecdh.DeriveKeyMaterial(otherPublicKeyObj);
+                }
             }
         }
 
@@ -1084,9 +1083,9 @@ namespace jnUtil
 
                 d.Delete();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 
