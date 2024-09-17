@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -996,17 +997,27 @@ namespace jnUtil
 
         #region Zero memory
 
-        //  Call this function to remove the key from memory after use for security
-        [DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
-        private static extern bool ZeroMemory(IntPtr Destination, int Length);
-
         public static bool ZeroString(this string s)
         {
-            GCHandle gch = GCHandle.Alloc(s, GCHandleType.Pinned);
-            bool res = ZeroMemory(gch.AddrOfPinnedObject(), s.Length * 2);
-            gch.Free();
-            return res;
+            ArgumentNullException.ThrowIfNull(s);
+
+            Span<char> span = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(s.AsSpan()), s.Length);
+            span.Clear();
+            return true;
         }
+
+        //public static bool ZeroString(this string s)
+        //{
+        //    ArgumentNullException.ThrowIfNull(s);
+
+        //    unsafe
+        //    {
+        //        fixed (char* ptr = s)
+        //            for (int i = 0; i < s.Length; i++)
+        //                ptr[i] = '\0';
+        //    }
+        //    return true;
+        //}
 
         #endregion
 
