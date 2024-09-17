@@ -12,7 +12,7 @@ namespace jnUtilTests
     public class XmlHelperTests
     {
         [TestMethod]
-        public void EncrypttionDecryptionTests()
+        public void EncryptionDecryptionTests()
         {
             // Arrange
             XmlDocument doc = GetTestDocument("header","content");

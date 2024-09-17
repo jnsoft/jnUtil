@@ -162,9 +162,9 @@ namespace jnUtil
                 parent.AppendChild(newNode);
                 success = true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
 
             return success;
@@ -328,9 +328,9 @@ namespace jnUtil
 
                 //var xml = new XElement("TopElement", lines.Where((line, index) => index > 0).Select(line => new XElement("Item", line.Split(',').Select((column, index) => new XElement(headers[index], column)))));
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
                 //return false;
             }
         }
@@ -350,9 +350,9 @@ namespace jnUtil
                
                 return true;
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
         
@@ -448,6 +448,7 @@ namespace jnUtil
 
         #region Xsd Schema validation and xslt transforms
 
+        // TODO: implement throwing resolver to forbid xml external entity resolution 
         public static string XlstTransform(this XmlDocument doc, string stylesheet, bool trustedSource = false)
         {
             XslCompiledTransform xslt = new XslCompiledTransform();
@@ -456,9 +457,8 @@ namespace jnUtil
                 xslt.Load(xr, XsltSettings.TrustedXslt, new XmlUrlResolver());
             else
             {
-                System.Security.PermissionSet ps = new System.Security.PermissionSet(System.Security.Permissions.PermissionState.None);
-                //XmlResolver secureResolver = new XmlSecureResolver(new XmlUrlResolver(), ps);
-                xslt.Load(xr, XsltSettings.Default, new XmlUrlResolver());
+                XmlUrlResolver secureResolver = new CustomXmlResolver();
+                xslt.Load(xr, XsltSettings.Default, secureResolver);
             }
 
             XmlReader xmlReader = new XmlNodeReader(doc);
@@ -484,15 +484,15 @@ namespace jnUtil
                     xslt.Load(stylesheetURI, XsltSettings.TrustedXslt, new XmlUrlResolver());
                 else
                 {
-                    XmlResolver secureResolver = new XmlSecureResolver(new XmlUrlResolver(), inputURI);
+                    XmlResolver secureResolver = XmlResolver.ThrowingResolver;
                     xslt.Load(stylesheetURI, XsltSettings.Default, secureResolver);
                 }
 
                 xslt.Transform(inputURI, outputFile);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 
@@ -505,29 +505,44 @@ namespace jnUtil
                     xslt.Load(stylesheet, XsltSettings.TrustedXslt, new XmlUrlResolver());
                 else
                 {
-                    XmlResolver secureResolver = new XmlSecureResolver(new XmlUrlResolver(), inputURI);
+                    XmlResolver secureResolver = XmlResolver.ThrowingResolver;
                     xslt.Load(stylesheet, XsltSettings.Default, secureResolver);
                 }
                 xslt.Transform(inputURI, outputFile);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 
         public static bool DtdValidate(string xmlFile)
         {
-            XmlTextReader r = new XmlTextReader(xmlFile);
-            XmlValidatingReader v = new XmlValidatingReader(r);
-            v.ValidationType = ValidationType.DTD;
+            XmlReaderSettings settings = new XmlReaderSettings();
+            settings.DtdProcessing = DtdProcessing.Parse;
+            settings.ValidationType = ValidationType.DTD;
+            settings.ValidationFlags |= XmlSchemaValidationFlags.ReportValidationWarnings;
+            settings.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
+
             bool isValid = true;
-            v.ValidationEventHandler += new ValidationEventHandler(ValidationCallBack);
-            while (v.Read())
+            try
             {
-                // Can add code here to process the content.
+                using XmlReader reader = XmlReader.Create(xmlFile, settings);
+                while(reader.Read())
+                {
+                    // can add code hete to process the content
+                }
             }
-            v.Close();
+            catch (XmlException)
+            {
+                isValid = false;
+            }
+            catch(Exception)
+            {
+                isValid = false;
+            }
+
+            
             return isValid;
         }
 
@@ -620,67 +635,68 @@ namespace jnUtil
             ////////////////////////////////////////////////// 
 
             // Create a 256 bit Rijndael key.
-            RijndaelManaged sessionKey = new RijndaelManaged();
-            sessionKey.KeySize = 256;
+            using (Aes sessionKey = Aes.Create())
+            {
 
-            EncryptedXml eXml = new EncryptedXml();
+                EncryptedXml eXml = new EncryptedXml();
 
-            byte[] encryptedElement = eXml.EncryptData(elementToEncrypt, sessionKey, false);
+                byte[] encryptedElement = eXml.EncryptData(elementToEncrypt, sessionKey, false);
 
-            //////////////////////////////////////////////// 
-            // Construct an EncryptedData object and populate 
-            // it with the desired encryption information. 
-            ////////////////////////////////////////////////
+                //////////////////////////////////////////////// 
+                // Construct an EncryptedData object and populate 
+                // it with the desired encryption information. 
+                ////////////////////////////////////////////////
 
 
-            EncryptedData edElement = new EncryptedData();
-            edElement.Type = EncryptedXml.XmlEncElementUrl;
+                EncryptedData edElement = new EncryptedData();
+                edElement.Type = EncryptedXml.XmlEncElementUrl;
 
-            // Create an EncryptionMethod element so that the  
-            // receiver knows which algorithm to use for decryption.
+                // Create an EncryptionMethod element so that the  
+                // receiver knows which algorithm to use for decryption.
 
-            edElement.EncryptionMethod = new EncryptionMethod(EncryptedXml.XmlEncAES256Url);
+                edElement.EncryptionMethod = new EncryptionMethod(EncryptedXml.XmlEncAES256Url);
 
-            // Encrypt the session key and add it to an EncryptedKey element.
-            EncryptedKey ek = new EncryptedKey();
+                // Encrypt the session key and add it to an EncryptedKey element.
+                EncryptedKey ek = new EncryptedKey();
 
-            byte[] encryptedKey = EncryptedXml.EncryptKey(sessionKey.Key, Alg, false);
+                byte[] encryptedKey = EncryptedXml.EncryptKey(sessionKey.Key, Alg, false);
 
-            ek.CipherData = new CipherData(encryptedKey);
+                ek.CipherData = new CipherData(encryptedKey);
 
-            ek.EncryptionMethod = new EncryptionMethod(EncryptedXml.XmlEncRSA15Url);
+                ek.EncryptionMethod = new EncryptionMethod(EncryptedXml.XmlEncRSA15Url);
 
-            // Set the KeyInfo element to specify the 
-            // name of the RSA key. 
+                // Set the KeyInfo element to specify the 
+                // name of the RSA key. 
 
-            // Create a new KeyInfo element.
-            edElement.KeyInfo = new KeyInfo();
+                // Create a new KeyInfo element.
+                edElement.KeyInfo = new KeyInfo();
 
-            // Create a new KeyInfoName element.
-            KeyInfoName kin = new KeyInfoName();
+                // Create a new KeyInfoName element.
+                KeyInfoName kin = new KeyInfoName();
 
-            // Specify a name for the key.
-            kin.Value = KeyName;
+                // Specify a name for the key.
+                kin.Value = KeyName;
 
-            // Add the KeyInfoName element to the  
-            // EncryptedKey object.
-            ek.KeyInfo.AddClause(kin);
+                // Add the KeyInfoName element to the  
+                // EncryptedKey object.
+                ek.KeyInfo.AddClause(kin);
 
-            // Add the encrypted key to the  
-            // EncryptedData object.
+                // Add the encrypted key to the  
+                // EncryptedData object.
 
-            edElement.KeyInfo.AddClause(new KeyInfoEncryptedKey(ek));
+                edElement.KeyInfo.AddClause(new KeyInfoEncryptedKey(ek));
 
-            // Add the encrypted element data to the  
-            // EncryptedData object.
-            edElement.CipherData.CipherValue = encryptedElement;
+                // Add the encrypted element data to the  
+                // EncryptedData object.
+                edElement.CipherData.CipherValue = encryptedElement;
 
-            //////////////////////////////////////////////////// 
-            // Replace the element from the original XmlDocument 
-            // object with the EncryptedData element. 
-            ////////////////////////////////////////////////////
+                //////////////////////////////////////////////////// 
+                // Replace the element from the original XmlDocument 
+                // object with the EncryptedData element. 
+                ////////////////////////////////////////////////////
 
-            EncryptedXml.ReplaceElement(elementToEncrypt, edElement, false);
+                EncryptedXml.ReplaceElement(elementToEncrypt, edElement, false);
+            }
 
         }
 
@@ -718,21 +734,6 @@ namespace jnUtil
                 encryptionMethod = EncryptedXml.XmlEncTripleDESUrl;
             else if (Alg is DES)
                 encryptionMethod = EncryptedXml.XmlEncDESUrl;
-            else if (Alg is Rijndael)
-            {
-                switch (Alg.KeySize)
-                {
-                    case 128:
-                        encryptionMethod = EncryptedXml.XmlEncAES128Url;
-                        break;
-                    case 192:
-                        encryptionMethod = EncryptedXml.XmlEncAES192Url;
-                        break;
-                    case 256:
-                        encryptionMethod = EncryptedXml.XmlEncAES256Url;
-                        break;
-                }
-            }
             else if (Alg is Aes)
             {
                 switch (Alg.KeySize)
@@ -1026,7 +1027,7 @@ namespace jnUtil
             if (cert == null)
                 signedXml.SigningKey = Key;
             else
-                signedXml.SigningKey = ((RSA)cert.PrivateKey);
+                signedXml.SigningKey = cert.GetRSAPrivateKey();
 
             // Specify a canonicalization method. (Exclusive XML Canonicalization)
             signedXml.SignedInfo.CanonicalizationMethod = SignedXml.XmlDsigExcC14NTransformUrl;
@@ -1134,5 +1135,15 @@ namespace jnUtil
 
         #endregion
 
+    }
+
+    public class CustomXmlResolver : XmlUrlResolver
+    {
+        public override object GetEntity(Uri absoluteUri, string role, Type ofObjectToReturn)
+        {
+            if(absoluteUri.Scheme == "file" && absoluteUri.LocalPath.EndsWith(".xsl"))
+                return base.GetEntity(absoluteUri, role, ofObjectToReturn);
+            throw new UnauthorizedAccessException("Access to resource is denied");
+        }
     }
 }

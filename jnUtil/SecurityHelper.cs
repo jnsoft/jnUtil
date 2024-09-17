@@ -82,13 +82,8 @@ namespace jnUtil
             return sb.ToString();
         }
 
-        public static byte[] GetRandomKey(int bytes_len)
-        {
-            byte[] key = new byte[bytes_len];
-            RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-            rng.GetBytes(key);
-            return key;
-        }
+        public static byte[] GetRandomKey(int bytes_len) => RandomNumberGenerator.GetBytes(bytes_len);
+        
 
         public static SecureString GeneratePassword(int len, bool complex)
         {
@@ -199,27 +194,27 @@ namespace jnUtil
         {
             if (type == MACTypes.MD5)
             {
-                MD5 md5 = new MD5CryptoServiceProvider();
-                return md5.ComputeHash(data);
+                using (MD5 md5 = MD5.Create())
+                    return md5.ComputeHash(data);
             }
             else if (type == MACTypes.SHA1)
             {
-                SHA1 sha = new SHA1CryptoServiceProvider();
+                using SHA1 sha = SHA1.Create();
                 return sha.ComputeHash(data);
             }
             else if (type == MACTypes.SHA256)
             {
-                SHA256 sha = new SHA256CryptoServiceProvider();
+                using SHA256 sha = SHA256.Create();
                 return sha.ComputeHash(data);
             }
             else if (type == MACTypes.SHA384)
             {
-                SHA384 sha = new SHA384CryptoServiceProvider();
+                using SHA384 sha = SHA384.Create();
                 return sha.ComputeHash(data);
             }
             else if (type == MACTypes.SHA512)
             {
-                SHA512 sha = new SHA512CryptoServiceProvider();
+                using SHA512 sha = SHA512.Create();
                 return sha.ComputeHash(data);
             }
             else
@@ -297,7 +292,7 @@ namespace jnUtil
                 if (hValue[i] != MAC[i])
                     test = false;
             }
-            return true;
+            return test;
         }
 
         public enum MACTypes
@@ -328,9 +323,9 @@ namespace jnUtil
                 byte[] decryptedData = DecryptData_Account(Convert.FromBase64String(encryptedData), extraEntropy);
                 return Encoding.Unicode.GetString(decryptedData);
             }
-            catch(Exception e)
+            catch(Exception)
             {
-                throw e;
+                throw;
             }
         }
 
@@ -435,7 +430,7 @@ namespace jnUtil
             byte[] tag = new byte[16];
             byte[] ciphertext = new byte[plain.Length];
 
-            using(AesGcm gcm = new AesGcm(key))
+            using(AesGcm gcm = new(key, tag.Length))
             {
                 gcm.Encrypt(nonce_12bytes, plain, ciphertext, tag, associatedData);
             }
@@ -446,7 +441,7 @@ namespace jnUtil
         {
             byte[] plain = new byte[ciphertext.Length];
 
-            using (AesGcm gcm = new AesGcm(key))
+            using (AesGcm gcm = new(key, tag.Length))
             {
                 gcm.Decrypt(nonce_12bytes, ciphertext, tag, plain, associatedData);
             }
@@ -760,7 +755,7 @@ namespace jnUtil
 
                                 return true;
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 return false;
                             }
@@ -808,7 +803,7 @@ namespace jnUtil
                                     fsOut.Write(buffer, 0, read);
                                 return true;
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 return false;
                             }
@@ -1016,7 +1011,7 @@ namespace jnUtil
 
                     // Create a cryptographic Random Number Generator.
                     // This is what I use to create the garbage data.
-                    RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
+                    RandomNumberGenerator rng = RandomNumberGenerator.Create();
 
                     // Open a FileStream to the file.
                     FileStream inputStream = new FileStream(filename, FileMode.Open);
@@ -1059,9 +1054,9 @@ namespace jnUtil
 
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 
