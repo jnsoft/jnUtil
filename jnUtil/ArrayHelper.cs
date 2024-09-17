@@ -23,13 +23,19 @@ namespace jnUtil
 
 		public static void Append<T>(this T[] data, T[] newData, ref int writePos)
 		{
-			Buffer.BlockCopy(newData, 0, data, writePos, newData.Length);
+			if(writePos < 0 || writePos + newData.Length > data.Length)
+				throw new ArgumentOutOfRangeException(nameof(writePos));
+
+			Array.Copy(newData, 0, data, writePos, newData.Length);
 			writePos += newData.Length;
 		}
 
 		public static void Extract<T>(this T[] source, T[] dest, ref int readPos)
 		{
-			Buffer.BlockCopy(source, readPos, dest, 0, dest.Length);
+            if (readPos < 0 || readPos + dest.Length > source.Length)
+                throw new ArgumentOutOfRangeException(nameof(readPos));
+
+            Array.Copy(source, readPos, dest, 0, dest.Length);
 			readPos += dest.Length;
 		}
 

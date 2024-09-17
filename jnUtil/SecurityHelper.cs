@@ -42,7 +42,7 @@ namespace jnUtil
         #region String and Base 64
 
         // Binary to Base 64
-        public static string ToBase64(this byte[] bytes, bool LineBreaks = true) => 
+        public static string ToBase64(this byte[] bytes, bool LineBreaks = true) =>
             Convert.ToBase64String(bytes, LineBreaks ? Base64FormattingOptions.InsertLineBreaks : Base64FormattingOptions.None);
 
         // Back to binary
@@ -83,7 +83,7 @@ namespace jnUtil
         }
 
         public static byte[] GetRandomKey(int bytes_len) => RandomNumberGenerator.GetBytes(bytes_len);
-        
+
 
         public static SecureString GeneratePassword(int len, bool complex)
         {
@@ -238,7 +238,7 @@ namespace jnUtil
 
         public static byte[] GetMAC(MACTypes type, byte[] data, byte[] key)
         {
-            if(type == MACTypes.MD5 && key.Length < 16)
+            if (type == MACTypes.MD5 && key.Length < 16)
                 throw new ArgumentException("Minimun key length for MD5 MAC is 16 bytes");
             else if (type == MACTypes.SHA1 && key.Length < 20)
                 throw new ArgumentException("Minimun key length for SHA-1 MAC is 20 bytes");
@@ -323,7 +323,7 @@ namespace jnUtil
                 byte[] decryptedData = DecryptData_Account(Convert.FromBase64String(encryptedData), extraEntropy);
                 return Encoding.Unicode.GetString(decryptedData);
             }
-            catch(Exception)
+            catch (Exception)
             {
                 throw;
             }
@@ -331,17 +331,35 @@ namespace jnUtil
 
         public static byte[] EncryptData_Account(byte[] plain, byte[] extraEntropy = null)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+
             byte[] encrypted = ProtectedData.Protect(plain, extraEntropy, DataProtectionScope.CurrentUser);
             Array.Clear(plain, 0, plain.Length);
             plain = null;
             return encrypted;
         }
 
-        public static byte[] DecryptData_Account(byte[] encrypted, byte[] extraEntropy = null) => ProtectedData.Unprotect(encrypted, extraEntropy, DataProtectionScope.CurrentUser);
+        public static byte[] DecryptData_Account(byte[] encrypted, byte[] extraEntropy = null)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+            return ProtectedData.Unprotect(encrypted, extraEntropy, DataProtectionScope.CurrentUser);
+        }
 
-        public static void EncryptFile_Account(string path) => File.Encrypt(path);
+        public static void EncryptFile_Account(string path)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+            File.Encrypt(path);
+        }
 
-        public static void DecryptFile_Account(string path) => File.Decrypt(path);
+        public static void DecryptFile_Account(string path)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+            File.Decrypt(path);
+        }
 
         #endregion
 

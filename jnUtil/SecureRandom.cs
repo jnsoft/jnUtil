@@ -12,8 +12,8 @@ namespace jnUtil
         const byte LENGTH_OF_DOUBLE = 8;
 
         // RNG
-        static readonly ThreadLocal<RNGCryptoServiceProvider> rng =
-            new ThreadLocal<RNGCryptoServiceProvider>(() => new RNGCryptoServiceProvider());
+        static readonly ThreadLocal<RandomNumberGenerator> rng =
+            new ThreadLocal<RandomNumberGenerator>(() => RandomNumberGenerator.Create());
 
         public static double Double
         {
