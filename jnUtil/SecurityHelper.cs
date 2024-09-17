@@ -907,12 +907,10 @@ namespace jnUtil
         // returns private key and outputs public key
         public static byte[] GeneratePKIPair(out byte[] publicKey)
         {
-            using (ECDiffieHellmanCng dh = new ECDiffieHellmanCng())
+            using (ECDiffieHellman dh = ECDiffieHellman.Create())
             {
-                dh.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
-                dh.HashAlgorithm = CngAlgorithm.Sha256;
-                publicKey = dh.PublicKey.ToByteArray();
-                return dh.Key.Export(CngKeyBlobFormat.EccPrivateBlob);
+                publicKey = dh.ExportSubjectPublicKeyInfo();
+                return dh.ExportECPrivateKey();                
             }
         }
 
@@ -1084,9 +1082,9 @@ namespace jnUtil
 
                 d.Delete();
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 

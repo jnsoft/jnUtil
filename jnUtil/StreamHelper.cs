@@ -4,6 +4,7 @@ using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
+using System.Text.Json;
 
 namespace jnUtil
 {
@@ -138,32 +139,26 @@ namespace jnUtil
 
         #region Serialization - requires [Serializable] attribute to classes
 
-        public static MemoryStream SerializeToStream(object o)
+        public static MemoryStream SerializeToStream<T>(T o)
         {
-            MemoryStream stream = new MemoryStream();
-            IFormatter formatter = new BinaryFormatter();
-            formatter.Serialize(stream, o);
+            if(o == null)
+                throw new ArgumentNullException(nameof(o),"Object cannot be null");
+            var stream = new MemoryStream();
+            JsonSerializer.Serialize(stream, o);
+            stream.Position = 0;
             return stream;
         }
 
-        public static byte[] SerializeToBytes(object o) => SerializeToStream(o).ToArray();
+        public static byte[] SerializeToBytes<T>(T o) => JsonSerializer.SerializeToUtf8Bytes(o);
 
-        public static TData DeserializeFromStream<TData>(MemoryStream stream)
+         public static T DeserializeFromStream<T>(MemoryStream stream)
         {
-            IFormatter formatter = new BinaryFormatter();
-            stream.Seek(0, SeekOrigin.Begin);
-            return (TData)formatter.Deserialize(stream);
+            stream.Position = 0;
+            return JsonSerializer.Deserialize<T>(stream);
         }
 
-        public static TData DeserializeFromBytes<TData>(byte[] bytes)
-        {
-            using (MemoryStream ms = new MemoryStream(bytes))
-            {
-                BinaryFormatter binaryFormatter = new BinaryFormatter();
-                ms.Seek(0, SeekOrigin.Begin);
-                return (TData)binaryFormatter.Deserialize(ms);
-            }
-        }
+        public static T DeserializeFromBytes<T>(byte[] bytes) => JsonSerializer.Deserialize<T>(bytes);
+        
 
         #endregion
 
