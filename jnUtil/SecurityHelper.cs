@@ -917,14 +917,15 @@ namespace jnUtil
         // you need a generated key pair and the recievers public key
         public static byte[] DeriveSymmetricKey(byte[] myPrivateKey, byte[] otherPublicKey)
         {
-            CngKey prk = CngKey.Import(myPrivateKey, CngKeyBlobFormat.EccPrivateBlob);
-            CngKey puk = CngKey.Import(otherPublicKey, CngKeyBlobFormat.EccPublicBlob);
-
-            using (ECDiffieHellmanCng dh = new ECDiffieHellmanCng(prk))
+            using (ECDiffieHellman ecdh = ECDiffieHellman.Create())
             {
-                dh.KeyDerivationFunction = ECDiffieHellmanKeyDerivationFunction.Hash;
-                dh.HashAlgorithm = CngAlgorithm.Sha256;
-                return dh.DeriveKeyMaterial(puk);
+                ecdh.ImportECPrivateKey(myPrivateKey, out _);
+                using (ECDiffieHellman otherEcdh = ECDiffieHellman.Create())
+                {
+                    otherEcdh.ImportSubjectPublicKeyInfo(otherPublicKey, out _);
+                    using ECDiffieHellmanPublicKey otherPublicKeyObj = otherEcdh.PublicKey;
+                    return ecdh.DeriveKeyMaterial(otherPublicKeyObj);
+                }
             }
         }
 
