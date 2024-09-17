@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
@@ -42,7 +43,7 @@ namespace jnUtil
         #region String and Base 64
 
         // Binary to Base 64
-        public static string ToBase64(this byte[] bytes, bool LineBreaks = true) => 
+        public static string ToBase64(this byte[] bytes, bool LineBreaks = true) =>
             Convert.ToBase64String(bytes, LineBreaks ? Base64FormattingOptions.InsertLineBreaks : Base64FormattingOptions.None);
 
         // Back to binary
@@ -82,13 +83,8 @@ namespace jnUtil
             return sb.ToString();
         }
 
-        public static byte[] GetRandomKey(int bytes_len)
-        {
-            byte[] key = new byte[bytes_len];
-            RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-            rng.GetBytes(key);
-            return key;
-        }
+        public static byte[] GetRandomKey(int bytes_len) => RandomNumberGenerator.GetBytes(bytes_len);
+
 
         public static SecureString GeneratePassword(int len, bool complex)
         {
@@ -199,27 +195,27 @@ namespace jnUtil
         {
             if (type == MACTypes.MD5)
             {
-                MD5 md5 = new MD5CryptoServiceProvider();
-                return md5.ComputeHash(data);
+                using (MD5 md5 = MD5.Create())
+                    return md5.ComputeHash(data);
             }
             else if (type == MACTypes.SHA1)
             {
-                SHA1 sha = new SHA1CryptoServiceProvider();
+                using SHA1 sha = SHA1.Create();
                 return sha.ComputeHash(data);
             }
             else if (type == MACTypes.SHA256)
             {
-                SHA256 sha = new SHA256CryptoServiceProvider();
+                using SHA256 sha = SHA256.Create();
                 return sha.ComputeHash(data);
             }
             else if (type == MACTypes.SHA384)
             {
-                SHA384 sha = new SHA384CryptoServiceProvider();
+                using SHA384 sha = SHA384.Create();
                 return sha.ComputeHash(data);
             }
             else if (type == MACTypes.SHA512)
             {
-                SHA512 sha = new SHA512CryptoServiceProvider();
+                using SHA512 sha = SHA512.Create();
                 return sha.ComputeHash(data);
             }
             else
@@ -243,7 +239,7 @@ namespace jnUtil
 
         public static byte[] GetMAC(MACTypes type, byte[] data, byte[] key)
         {
-            if(type == MACTypes.MD5 && key.Length < 16)
+            if (type == MACTypes.MD5 && key.Length < 16)
                 throw new ArgumentException("Minimun key length for MD5 MAC is 16 bytes");
             else if (type == MACTypes.SHA1 && key.Length < 20)
                 throw new ArgumentException("Minimun key length for SHA-1 MAC is 20 bytes");
@@ -297,7 +293,7 @@ namespace jnUtil
                 if (hValue[i] != MAC[i])
                     test = false;
             }
-            return true;
+            return test;
         }
 
         public enum MACTypes
@@ -328,25 +324,43 @@ namespace jnUtil
                 byte[] decryptedData = DecryptData_Account(Convert.FromBase64String(encryptedData), extraEntropy);
                 return Encoding.Unicode.GetString(decryptedData);
             }
-            catch(Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 
         public static byte[] EncryptData_Account(byte[] plain, byte[] extraEntropy = null)
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+
             byte[] encrypted = ProtectedData.Protect(plain, extraEntropy, DataProtectionScope.CurrentUser);
             Array.Clear(plain, 0, plain.Length);
             plain = null;
             return encrypted;
         }
 
-        public static byte[] DecryptData_Account(byte[] encrypted, byte[] extraEntropy = null) => ProtectedData.Unprotect(encrypted, extraEntropy, DataProtectionScope.CurrentUser);
+        public static byte[] DecryptData_Account(byte[] encrypted, byte[] extraEntropy = null)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+            return ProtectedData.Unprotect(encrypted, extraEntropy, DataProtectionScope.CurrentUser);
+        }
 
-        public static void EncryptFile_Account(string path) => File.Encrypt(path);
+        public static void EncryptFile_Account(string path)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+            File.Encrypt(path);
+        }
 
-        public static void DecryptFile_Account(string path) => File.Decrypt(path);
+        public static void DecryptFile_Account(string path)
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                throw new PlatformNotSupportedException("ProtectedData is only supported on windows");
+            File.Decrypt(path);
+        }
 
         #endregion
 
@@ -435,7 +449,7 @@ namespace jnUtil
             byte[] tag = new byte[16];
             byte[] ciphertext = new byte[plain.Length];
 
-            using(AesGcm gcm = new AesGcm(key))
+            using(AesGcm gcm = new(key, tag.Length))
             {
                 gcm.Encrypt(nonce_12bytes, plain, ciphertext, tag, associatedData);
             }
@@ -446,7 +460,7 @@ namespace jnUtil
         {
             byte[] plain = new byte[ciphertext.Length];
 
-            using (AesGcm gcm = new AesGcm(key))
+            using (AesGcm gcm = new(key, tag.Length))
             {
                 gcm.Decrypt(nonce_12bytes, ciphertext, tag, plain, associatedData);
             }
@@ -760,7 +774,7 @@ namespace jnUtil
 
                                 return true;
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 return false;
                             }
@@ -808,7 +822,7 @@ namespace jnUtil
                                     fsOut.Write(buffer, 0, read);
                                 return true;
                             }
-                            catch (Exception e)
+                            catch (Exception)
                             {
                                 return false;
                             }
@@ -983,17 +997,27 @@ namespace jnUtil
 
         #region Zero memory
 
-        //  Call this function to remove the key from memory after use for security
-        [DllImport("KERNEL32.DLL", EntryPoint = "RtlZeroMemory")]
-        private static extern bool ZeroMemory(IntPtr Destination, int Length);
-
         public static bool ZeroString(this string s)
         {
-            GCHandle gch = GCHandle.Alloc(s, GCHandleType.Pinned);
-            bool res = ZeroMemory(gch.AddrOfPinnedObject(), s.Length * 2);
-            gch.Free();
-            return res;
+            ArgumentNullException.ThrowIfNull(s);
+
+            Span<char> span = MemoryMarshal.CreateSpan(ref MemoryMarshal.GetReference(s.AsSpan()), s.Length);
+            span.Clear();
+            return true;
         }
+
+        //public static bool ZeroString(this string s)
+        //{
+        //    ArgumentNullException.ThrowIfNull(s);
+
+        //    unsafe
+        //    {
+        //        fixed (char* ptr = s)
+        //            for (int i = 0; i < s.Length; i++)
+        //                ptr[i] = '\0';
+        //    }
+        //    return true;
+        //}
 
         #endregion
 
@@ -1016,7 +1040,7 @@ namespace jnUtil
 
                     // Create a cryptographic Random Number Generator.
                     // This is what I use to create the garbage data.
-                    RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
+                    RandomNumberGenerator rng = RandomNumberGenerator.Create();
 
                     // Open a FileStream to the file.
                     FileStream inputStream = new FileStream(filename, FileMode.Open);
@@ -1059,9 +1083,9 @@ namespace jnUtil
 
                 }
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                throw e;
+                throw;
             }
         }
 

@@ -197,7 +197,7 @@ namespace jnUtil
         // 1. Root CA cert (no issuingCA) or intermediate CA from issuingCA. Import Root into trusted root and intermediate 
         public static X509Certificate2 CreateCACert(string subjectName, X509Certificate2 issuingCa)
         {
-            using (ECDsa ecdsa = ECDsa.Create("ECDsa"))
+            using (ECDsa ecdsa = ECDsa.Create())
             {
                 ecdsa.KeySize = 256;
                 CertificateRequest request = new CertificateRequest($"CN={subjectName}", ecdsa, HashAlgorithmName.SHA256);
@@ -312,7 +312,7 @@ namespace jnUtil
             if (UriHostNameType.Unknown == Uri.CheckHostName(subjectName))
                 throw new ArgumentException("Must be a valid DNS name", nameof(subjectName));
 
-            using (var ecdsa = ECDsa.Create("ECDsa"))
+            using (var ecdsa = ECDsa.Create())
             {
                 ecdsa.KeySize = 256;
                 var request = new CertificateRequest($"CN={subjectName}", ecdsa, HashAlgorithmName.SHA256);
@@ -411,12 +411,17 @@ namespace jnUtil
             X509Certificate2 cert = new X509Certificate2(pfx, pwd, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
 
             byte[] publicBytes = cert.RawData;
-            RSACryptoServiceProvider rsa = (RSACryptoServiceProvider)cert.PrivateKey;
-            byte[] signedData = rsa.SignData(new System.Text.UTF8Encoding().GetBytes("Test"), new SHA1CryptoServiceProvider());
-
-            RSACryptoServiceProvider rsa2 = (RSACryptoServiceProvider)new X509Certificate2(publicBytes).PublicKey.Key;
-            bool verified = rsa2.VerifyData(new System.Text.UTF8Encoding().GetBytes("Test"), new SHA1CryptoServiceProvider(), signedData);
-
+            using (RSA rsa = cert.GetRSAPrivateKey())
+            {
+                byte[] dataToSign = Encoding.UTF8.GetBytes("Test");
+                byte[] signedData = rsa.SignData(dataToSign, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+                using(RSA rsa2 = new X509Certificate2(publicBytes).GetRSAPublicKey())
+                {
+                    bool verified = rsa2.VerifyData(dataToSign, signedData, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
+                    Debug.Assert(verified, "Signature verification failed");
+                }
+            }
+            
             return cert;
         }
 
@@ -440,7 +445,7 @@ namespace jnUtil
             IntPtr certStore = IntPtr.Zero;
             IntPtr storeCertContext = IntPtr.Zero;
             IntPtr passwordPtr = IntPtr.Zero;
-            RuntimeHelpers.PrepareConstrainedRegions();
+            // RuntimeHelpers.PrepareConstrainedRegions(); // Obsolete
             try
             {
                 Check(NativeMethods.CryptAcquireContextW(

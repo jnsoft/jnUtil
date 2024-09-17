@@ -1,6 +1,7 @@
 using jnUtil;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 
@@ -134,34 +135,39 @@ namespace jnUtilTests
         [TestMethod]
         public void OSEncryptDecryptStringsTest()
         {
-            // Arrange
-            string message = "secret message";
-            string message2 = "s" + message.Substring(1); // force different reference for string
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Arrange
+                string message = "secret message";
+                string message2 = "s" + message.Substring(1); // force different reference for string
 
-            // Act
-            string encrypted = SecurityHelper.EncryptString_Account(message);
-            string decrypted = SecurityHelper.DecryptString_Account(encrypted);
+                // Act
+                string encrypted = SecurityHelper.EncryptString_Account(message);
+                string decrypted = SecurityHelper.DecryptString_Account(encrypted);
 
-            // Assert
-            Assert.AreEqual(message2, decrypted, $"'{message2}' vs '{decrypted}'");
-            Assert.AreNotEqual(message, decrypted, $"Zero string failed");
-
+                // Assert
+                Assert.AreEqual(message2, decrypted, $"'{message2}' vs '{decrypted}'");
+                Assert.AreNotEqual(message, decrypted, $"Zero string failed");
+            }
         }
 
         [TestMethod]
         public void OSEncryptDecryptTest()
         {
-            // Arrange
-            byte[] plain = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5 };
-            byte[] org = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5 };
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                // Arrange
+                byte[] plain = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5 };
+                byte[] org = new byte[] { 0x1, 0x2, 0x3, 0x4, 0x5 };
 
-            // Act
-            byte[] encrypted = SecurityHelper.EncryptData_Account(plain);
-            byte[] decrypted = SecurityHelper.DecryptData_Account(encrypted);
+                // Act
+                byte[] encrypted = SecurityHelper.EncryptData_Account(plain);
+                byte[] decrypted = SecurityHelper.DecryptData_Account(encrypted);
 
-            // Assert
-            CollectionAssert.AreEqual(org, decrypted);
-            CollectionAssert.AreNotEquivalent(plain, decrypted);
+                // Assert
+                CollectionAssert.AreEqual(org, decrypted);
+                CollectionAssert.AreNotEquivalent(plain, decrypted);
+            }
         }
 
         // test creation, extraction and comparing of secure strings and zero-out of orginal string
@@ -172,7 +178,7 @@ namespace jnUtilTests
             string org = "test";
             string input = GenericCopier<string>.DeepCopy(org);
             string input2 = GenericCopier<string>.DeepCopy(org);
-            
+
             // Act
             SecureString inputSS = input.ToSecureString();
             SecureString inputSS2 = input2.ToSecureString();
