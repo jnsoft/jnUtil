@@ -62,15 +62,46 @@ jobs:
         name: nuget-package
         path: ${{ runner.temp }}/packages
 
-    - name: Publish NuGet Package (Trusted Publishing)
-      shell: pwsh
+    # Get a short-lived NuGet API key
+    - name: NuGet login (OIDC → temp API key)
+      uses: NuGet/login@v1
+      id: login
+      with:
+        user: ${{ secrets.NUGET_USER }}
+    
+    # Push the package
+    - name: NuGet push
       run: |
-        $oidcToken = (Invoke-RestMethod `
-          -Uri "$env:ACTIONS_ID_TOKEN_REQUEST_URL&audience=api://AzureADTokenExchange" `
-          -Headers @{ Authorization = "Bearer $env:ACTIONS_RUNTIME_TOKEN" }).value
         $pkgs = Get-ChildItem -Path "$env:RUNNER_TEMP/packages" -Filter *.nupkg
         if (-not $pkgs) { throw "No .nupkg files found" }
         foreach ($pkg in $pkgs) {
           Write-Host "Publishing $($pkg.Name)"
-          dotnet nuget push $pkg.FullName --skip-duplicate --api-key $oidcToken --source https://api.nuget.org/v3/index.json
+          dotnet nuget push $pkg.FullName --skip-duplicate --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
+        }
+
+   
+   
+
+    - name: Publish NuGet Package (manual Trusted Publishing)
+      shell: pwsh
+      if: false
+      run: |
+        # Step 1: Get GitHub OIDC token
+        $gitHubToken = (Invoke-RestMethod `
+          -Uri "$env:ACTIONS_ID_TOKEN_REQUEST_URL&audience=nuget.org" `
+          -Headers @{ Authorization = "Bearer $env:ACTIONS_RUNTIME_TOKEN" }).value
+
+        # Step 2: Exchange for short-lived NuGet API token
+        $nugetToken = (Invoke-RestMethod `
+          -Method Post `
+          -Uri "https://api.nuget.org/v1/packages/oidc-token" `
+          -Body (@{ identityToken = $gitHubToken } | ConvertTo-Json) `
+          -ContentType "application/json").token
+
+        # Step 3: Push
+        $pkgs = Get-ChildItem -Path "$env:RUNNER_TEMP/packages" -Filter *.nupkg
+        if (-not $pkgs) { throw "No .nupkg files found" }
+        foreach ($pkg in $pkgs) {
+          Write-Host "Publishing $($pkg.Name)"
+          dotnet nuget push $pkg.FullName --skip-duplicate --api-key $nugetToken --source https://api.nuget.org/v3/index.json
         }
