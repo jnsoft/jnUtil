@@ -61,12 +61,12 @@ jobs:
 
     - name: Pack
       shell: pwsh
-      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --output ./packages
+      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --output "${{ github.workspace }}/packages"
 
     - name: Publish NuGet Package
       shell: pwsh
       run: |
-        $pkgs = Get-ChildItem -Path ./packages -Filter *.nupkg
+        $pkgs = Get-ChildItem -Path "${{ github.workspace }}/packages" -Filter *.nupkg
         if (-not $pkgs) { throw "No .nupkg files found in ./packages" }
         foreach ($pkg in $pkgs) {
           Write-Host "Publishing $($pkg.Name)"
