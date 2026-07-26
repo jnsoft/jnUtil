@@ -799,49 +799,40 @@ namespace jnUtil
             byte[] salt = new byte[saltLength];
             byte[] iv = new byte[16];
 
-            using (FileStream fsCrypt = new FileStream(path, FileMode.Open))
+            using FileStream fsCrypt = new FileStream(path, FileMode.Open);
+
+            fsCrypt.ReadExactly(salt);
+            fsCrypt.ReadExactly(iv);
+
+            using SymmetricAlgorithm aes = getAES(AesModes.Aes256CbcPkcs7, key, iv);
+            using CryptoStream cs = new CryptoStream(fsCrypt, aes.CreateDecryptor(), CryptoStreamMode.Read);
+            using FileStream fsOut = new FileStream(outputPath, FileMode.Create);
+
+            byte[] buffer = new byte[BUFFERSIZE];
+            int read;
+
+            try
             {
-                fsCrypt.Read(salt, 0, salt.Length);
-                fsCrypt.Read(iv, 0, iv.Length);
-
-                using (SymmetricAlgorithm aes = getAES(AesModes.Aes256CbcPkcs7, key, iv))
-                {
-                    using (CryptoStream cs = new CryptoStream(fsCrypt, aes.CreateDecryptor(), CryptoStreamMode.Read))
-                    {
-                        using (FileStream fsOut = new FileStream(outputPath, FileMode.Create))
-                        {
-                            //create a buffer (1mb) so only this amount will allocate in the memory and not the whole file
-                            byte[] buffer = new byte[BUFFERSIZE];
-                            int read;
-
-                            try
-                            {
-                                while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
-                                    fsOut.Write(buffer, 0, read);
-                                return true;
-                            }
-                            catch (Exception)
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                }
-
+                while ((read = cs.Read(buffer, 0, buffer.Length)) > 0)
+                    fsOut.Write(buffer, 0, read);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
         public static byte[] AesGetSaltToDecryptFile(string path, int? saltlength = null)
         {
-            if(!saltlength.HasValue)
+            if (!saltlength.HasValue)
                 saltlength = GetEntropy.Length;
-            
+
             byte[] salt = new byte[saltlength.Value];
-           
-            using (FileStream fsCrypt = new FileStream(path, FileMode.Open))
-            {
-                fsCrypt.Read(salt, 0, salt.Length);
-            }
+
+            using FileStream fsCrypt = new FileStream(path, FileMode.Open);
+            fsCrypt.ReadExactly(salt);
+
             return salt;
         }
 
