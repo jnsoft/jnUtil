@@ -10,16 +10,7 @@ namespace jnUtil
 {
     public static class StreamHelper
     {
-        public static byte[] GetBytesFromFile(string file)
-        {
-            using (FileStream fs = File.OpenRead(file))
-            {
-                byte[] bytes = new byte[fs.Length];
-                fs.Read(bytes, 0, Convert.ToInt32(fs.Length));
-                fs.Close();
-                return bytes;
-            }
-        }
+        public static byte[] GetBytesFromFile(string file) => File.ReadAllBytes(file);
 
         public static void CopyStream(this Stream input, Stream output, Int64 len = 32768)
         {

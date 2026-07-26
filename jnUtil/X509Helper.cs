@@ -75,7 +75,8 @@ namespace jnUtil
         public static byte[] GetPublicKey(X509Certificate2 certificate) => certificate.Export(X509ContentType.Cert);
 
         // wrapper for GetPublicKey
-        public static X509Certificate2 ExportCertificatePublicKey(X509Certificate2 certificate) => new X509Certificate2(GetPublicKey(certificate));
+        public static X509Certificate2 ExportCertificatePublicKey(X509Certificate2 certificate) =>
+            X509CertificateLoader.LoadCertificate(GetPublicKey(certificate));
 
         // wrapper for GetPublicKey, saves public key in .cer file
         public static void SaveX509ToCerFile(X509Certificate2 cert, string filename) => File.WriteAllBytes(filename, GetPublicKey(cert));
@@ -100,25 +101,22 @@ namespace jnUtil
 
         public static X509Certificate2 X509FromPfx(byte[] pfx, SecureString password)
         {
-            X509Certificate2 cert;
+            var loaderLimits = new Pkcs12LoaderLimits
+            {
+                PreserveStorageProvider = true,
+            };
 
-            if (password == null)
-                cert = new X509Certificate2(pfx);
-            else
-                cert = new X509Certificate2(pfx, password, X509KeyStorageFlags.Exportable);
-            return cert;
+            return password == null
+                ? X509CertificateLoader.LoadPkcs12(pfx, password: null, X509KeyStorageFlags.Exportable, loaderLimits)
+                : X509CertificateLoader.LoadPkcs12(pfx, password.ToInsecureString(), X509KeyStorageFlags.Exportable, loaderLimits);
         }
+
 
         // wrapper for X509FromPfx
         public static X509Certificate2 LoadPfxFromFile(string filename, SecureString password = null)
         {
-            using (FileStream fs = File.OpenRead(filename))
-            {
-                byte[] bytes = new byte[fs.Length];
-                fs.Read(bytes, 0, Convert.ToInt32(fs.Length));
-                fs.Close();
-                return X509FromPfx(bytes, password);
-            }
+            byte[] bytes = File.ReadAllBytes(filename);
+            return X509FromPfx(bytes, password);
         }
 
         public static byte[] X509WithChainToPfx(X509Certificate2 certificate, SecureString password, X509Certificate2 signingCert, X509Certificate2Collection chain)
@@ -146,47 +144,45 @@ namespace jnUtil
             LoadPfxAndCollectionFromFile(string pfxFileName, SecureString password)
         {
             if (string.IsNullOrEmpty(pfxFileName))
-            {
                 throw new ArgumentException($"{nameof(pfxFileName)} must be a valid filename.", nameof(pfxFileName));
-            }
+
             if (!File.Exists(pfxFileName))
-            {
                 throw new FileNotFoundException($"{pfxFileName} does not exist. Cannot load certificate from non-existing file.", pfxFileName);
-            }
-            var certificateCollection = new X509Certificate2Collection();
-            certificateCollection.Import(
-                pfxFileName,
-                password.ToInsecureString(),
-                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.UserKeySet);
+
+            var loaderLimits = new Pkcs12LoaderLimits
+            {
+                PreserveStorageProvider = true,
+            };
+
+            X509Certificate2Collection certificateCollection = X509CertificateLoader.LoadPkcs12CollectionFromFile(
+            pfxFileName,
+            password?.ToInsecureString(),
+            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.UserKeySet,
+            loaderLimits);
 
             X509Certificate2 certificate = null;
             var outcollection = new X509Certificate2Collection();
+
+
             foreach (X509Certificate2 element in certificateCollection)
             {
                 Debug.WriteLine($"Found certificate: {element?.Thumbprint} " +
                     $"{element?.Subject}; PrivateKey: {element?.HasPrivateKey}");
+
                 if (certificate == null && element.HasPrivateKey)
-                {
                     certificate = element;
-                }
                 else
-                {
                     outcollection.Add(element);
-                }
             }
 
             if (certificate == null)
             {
-                Debug.WriteLine($"ERROR: {pfxFileName} did not " +
-                    $"contain any certificate with a private key.");
+                Debug.WriteLine($"ERROR: {pfxFileName} did not contain any certificate with a private key.");
                 return (null, null);
             }
-            else
-            {
-                Debug.WriteLine($"Using certificate {certificate.Thumbprint} " +
-                    $"{certificate.Subject}");
-                return (certificate, outcollection);
-            }
+
+            Debug.WriteLine($"Using certificate {certificate.Thumbprint} {certificate.Subject}");
+            return (certificate, outcollection);
 
         }
 
@@ -408,14 +404,21 @@ namespace jnUtil
         public static X509Certificate2 CreateSelfSignedCertificate_old(SecureString pwd, string organizationName = "Company", string commonName = "Firstname", string surname = "Lastname")
         {
             byte[] pfx = CreateSelfSignCertificatePfx("O=" + organizationName + ",CN=" + commonName + ",SN=" + surname, DateTime.Now, DateTime.Now.AddYears(3), pwd);
-            X509Certificate2 cert = new X509Certificate2(pfx, pwd, X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
+
+            var loaderLimits = new Pkcs12LoaderLimits
+            {
+                PreserveStorageProvider = true
+            };
+
+            X509Certificate2 cert = X509CertificateLoader.LoadPkcs12(pfx, pwd?.ToInsecureString(),
+                X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
 
             byte[] publicBytes = cert.RawData;
             using (RSA rsa = cert.GetRSAPrivateKey())
             {
                 byte[] dataToSign = Encoding.UTF8.GetBytes("Test");
                 byte[] signedData = rsa.SignData(dataToSign, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
-                using(RSA rsa2 = new X509Certificate2(publicBytes).GetRSAPublicKey())
+                using (RSA rsa2 = X509CertificateLoader.LoadCertificate(publicBytes).GetRSAPublicKey())
                 {
                     bool verified = rsa2.VerifyData(dataToSign, signedData, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
                     Debug.Assert(verified, "Signature verification failed");

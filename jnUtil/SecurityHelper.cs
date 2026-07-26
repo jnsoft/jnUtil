@@ -113,9 +113,7 @@ namespace jnUtil
                 {
                     for (int i = 0; i < length; i++)
                         pwdByteArray[i] = Marshal.ReadByte(ptr, i);
-
-                    using Rfc2898DeriveBytes key_PBKDF2 = new Rfc2898DeriveBytes(pwdByteArray, salt, noOfIterations, HashAlgorithmName.SHA256);
-                    return key_PBKDF2.GetBytes(keySizeInBytes);
+                    return Rfc2898DeriveBytes.Pbkdf2(pwdByteArray, salt, noOfIterations, HashAlgorithmName.SHA256, keySizeInBytes);
                 }
                 finally
                 {
