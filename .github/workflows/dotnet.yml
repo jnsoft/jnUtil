@@ -34,7 +34,7 @@ jobs:
   publish-nuget:
     runs-on: windows-latest
     needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    #if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
     - uses: actions/checkout@v4
@@ -60,14 +60,14 @@ jobs:
       run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
 
     - name: Pack
+      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --output "$env:RUNNER_TEMP/packages" -p:IncludeSymbols=false
       shell: pwsh
-      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --output "${{ github.workspace }}/packages"
 
     - name: Publish NuGet Package
       shell: pwsh
       run: |
-        $pkgs = Get-ChildItem -Path "${{ github.workspace }}/packages" -Filter *.nupkg
-        if (-not $pkgs) { throw "No .nupkg files found in ./packages" }
+        $pkgs = Get-ChildItem -Path "$env:RUNNER_TEMP/packages" -Filter *.nupkg
+        if (-not $pkgs) { throw "No .nupkg files found" }
         foreach ($pkg in $pkgs) {
           Write-Host "Publishing $($pkg.Name)"
           dotnet nuget push $pkg.FullName --skip-duplicate --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
