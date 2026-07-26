@@ -1,7 +1,4 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
-name: .NET
+name: .NET Nuget
 
 on:
   push:
@@ -9,20 +6,61 @@ on:
   pull_request:
     branches: [ "main" ]
 
-jobs:
-  build:
+env:
+  BUILD_CONFIGURATION: Release
+  APP_NAME: jnUtil
 
-    runs-on: ubuntu-latest
+jobs:
+  build-and-test:
+    runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
+
     - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: 6.0.x
+        dotnet-version: '10.0.x'
+
     - name: Restore dependencies
       run: dotnet restore
+
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
+
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test jnUtilTests/jnUtilTests.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --verbosity normal --collect "Code coverage"
+
+  publish-nuget:
+    runs-on: windows-latest
+    needs: build-and-test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '10.0.x'
+
+    - name: Get version from project file
+      id: get_version
+      shell: pwsh
+      run: |
+        $xml = [Xml] (Get-Content "**\${{ env.APP_NAME }}.csproj")
+        $version = $xml.Project.PropertyGroup.Version
+        echo "Version: $version"
+        echo "version=$version" >> $env:GITHUB_OUTPUT
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
+
+    - name: Pack
+      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --output ${{ runner.temp }}/packages
+
+    - name: Publish NuGet Package
+      run: dotnet nuget push ${{ runner.temp }}/packages/*.nupkg --skip-duplicate --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
