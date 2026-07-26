@@ -60,7 +60,15 @@ jobs:
       run: dotnet build --no-restore --configuration ${{ env.BUILD_CONFIGURATION }}
 
     - name: Pack
-      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --output ${{ runner.temp }}/packages
+      shell: pwsh
+      run: dotnet pack ${{ env.APP_NAME }}/${{ env.APP_NAME }}.csproj --no-build --configuration ${{ env.BUILD_CONFIGURATION }} --output ./packages
 
     - name: Publish NuGet Package
-      run: dotnet nuget push ${{ runner.temp }}/packages/*.nupkg --skip-duplicate --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
+      shell: pwsh
+      run: |
+        $pkgs = Get-ChildItem -Path ./packages -Filter *.nupkg
+        if (-not $pkgs) { throw "No .nupkg files found in ./packages" }
+        foreach ($pkg in $pkgs) {
+          Write-Host "Publishing $($pkg.Name)"
+          dotnet nuget push $pkg.FullName --skip-duplicate --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
+        }
