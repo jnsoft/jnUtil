@@ -92,7 +92,7 @@ namespace jnUtil
 
         public static string[][] BuildNGramsStat(string[][] ngrams)
         {
-            TST<int> tst = new TST<int>();
+            TST<int> tst = new();
             int n = ngrams[0].Length;
 
             for (int i = 0; i < ngrams.Length; i++)

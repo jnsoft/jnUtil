@@ -867,10 +867,11 @@ namespace jnUtil
         {
             X509Certificate cert = null;
             if (!string.IsNullOrWhiteSpace(CertificateFile))
-                cert = new X509Certificate(StreamHelper.GetBytesFromFile(CertificateFile));
+                cert = X509CertificateLoader.LoadCertificate(StreamHelper.GetBytesFromFile(CertificateFile));
             XmlElement xmlDigitalSignature = SignDetachedResource(URIString, XmlSigFileName, Key, cert);
             XMLhelper.XmlToFile(xmlDigitalSignature, XmlSigFileName, false);
         }
+        
 
         // if Certificate != null, use X509 certificate
         public static XmlElement SignDetachedResource(string URIString = "http://www.microsoft.com", string XmlSigFileName = "XmlSigFile.xml", RSA Key = null, X509Certificate Certificate = null)
@@ -978,7 +979,7 @@ namespace jnUtil
         {
             X509Certificate2 cert = null;
             if (!string.IsNullOrWhiteSpace(certFile))
-                cert = new X509Certificate2(StreamHelper.GetBytesFromFile(certFile));
+                cert = X509CertificateLoader.LoadCertificate(StreamHelper.GetBytesFromFile(certFile));
 
             // Create a new XML document.
             XmlDocument doc = new XmlDocument();
