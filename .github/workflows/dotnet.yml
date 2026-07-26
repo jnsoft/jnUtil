@@ -46,6 +46,7 @@ jobs:
     runs-on: windows-latest
     needs: build-and-test
     #if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
     permissions:
       id-token: write  # required for OIDC trusted publishing
 
@@ -84,14 +85,14 @@ jobs:
 
     - name: Publish NuGet Package (manual Trusted Publishing)
       shell: pwsh
-      if: false
+      if: true
       run: |
-        # Step 1: Get GitHub OIDC token
+        # Get GitHub OIDC token
         $gitHubToken = (Invoke-RestMethod `
           -Uri "$env:ACTIONS_ID_TOKEN_REQUEST_URL&audience=nuget.org" `
           -Headers @{ Authorization = "Bearer $env:ACTIONS_RUNTIME_TOKEN" }).value
 
-        # Step 2: Exchange for short-lived NuGet API token
+        # Exchange for NuGet API token
         $nugetToken = (Invoke-RestMethod `
           -Method Post `
           -Uri "https://api.nuget.org/v1/packages/oidc-token" `
