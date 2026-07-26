@@ -66,6 +66,9 @@ jobs:
     - name: Publish NuGet Package
       shell: pwsh
       run: |
-        $pkg = Get-Item ./packages/*.nupkg | Select-Object -First 1
-        Write-Host "Publishing $($pkg.Name)"
-        dotnet nuget push $pkg.FullName --skip-duplicate --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
+        $pkgs = Get-ChildItem -Path ./packages -Filter *.nupkg
+        if (-not $pkgs) { throw "No .nupkg files found in ./packages" }
+        foreach ($pkg in $pkgs) {
+          Write-Host "Publishing $($pkg.Name)"
+          dotnet nuget push $pkg.FullName --skip-duplicate --api-key ${{ secrets.NUGET_KEY }} --source https://api.nuget.org/v3/index.json
+        }
