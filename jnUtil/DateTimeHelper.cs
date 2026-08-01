@@ -83,29 +83,33 @@ namespace jnUtil
 
         }
 
-        public static string ToWC3DateTime(this DateTime datetime, bool exact = false) => exact ? datetime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffzzz") : datetime.ToUniversalTime().ToString("s") + "Z";
+        public static string ToWC3DateTime(this DateTime datetime, bool exact = false) => 
+            exact ? datetime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffzzz") : datetime.ToUniversalTime().ToString("s") + "Z";
 
-        public static DateTime FromWC3DateTime(this string wc3DateTime, bool toLocal = false) => toLocal ? DateTime.Parse(wc3DateTime).ToLocalTime() : DateTime.Parse(wc3DateTime).ToUniversalTime();
+        public static DateTime FromWC3DateTime(this string wc3DateTime, bool toLocal = false) => 
+            toLocal ? DateTime.Parse(wc3DateTime).ToLocalTime() : DateTime.Parse(wc3DateTime).ToUniversalTime();
 
         public static DateTime FromUnixTimestamp(this double timestamp)
         {
-            DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            DateTime origin = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             return origin.AddSeconds(timestamp);
         }
 
         public static double ToUnixTimestamp(this DateTime date)
         {
-            DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
+            DateTime origin = new(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             TimeSpan diff = date.ToUniversalTime() - origin;
             return Math.Floor(diff.TotalSeconds);
         }
 
-        public static long TicksFrom1970() => (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)).Ticks;
+        public static long TicksFrom1970() => 
+            (DateTime.UtcNow - new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc)).Ticks;
 
         // Usage:
         // Second: now.Trim(TimeSpan.TicksPerSecond);
         // Minute: now.Trim(TimeSpan.TicksPerMinute);
         // Seconds: now.Trim(TimeSpan.TicksPerSecond);
-        public static DateTime Trim(this DateTime date, long ticks) => new DateTime(date.Ticks - (date.Ticks % ticks), date.Kind);
+        public static DateTime Trim(this DateTime date, long ticks) 
+            => new(date.Ticks - (date.Ticks % ticks), date.Kind);
     }
 }
