@@ -50,37 +50,23 @@ namespace jnUtil
             return ret;
         }
 
-        public static string ToIsoDate(this DateTime d, bool time = false)
+        public static string ToIsoDate(this DateTime value, bool time = false)
         {
-            
-                if (time)
-                    return d.ToString("yyyy-MM-dd HH:mm");
-                else
-                    return d.ToString("yyyy-MM-dd");
-
-            // DateTime to W3C dateTime string
-            // return d.ToString("yyyy-MM-ddTHH:mm:ss.fffffffzzz");
+            DateTime unspecified = DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
+            string format = time ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd";
+        
+            return unspecified.ToString(format, CultureInfo.InvariantCulture);
         }
-    
-        public static DateTime FromIsoDate(this string IsoDate, bool time, string cultureInfo = "sv-SE")
+        
+        public static DateTime FromIsoDate(this string isoDate, bool time)
         {
-            string formatString;
-            if (time)
-                formatString = "yyyy-MM-dd HH:mm"; 
-                //formatString = "yyyy-MM-ddTHH:mm:ss.fffffffzzz"; // W3C dateTime string to DateTime 
-            else
-                formatString = "yyyy-MM-dd";
-
-            System.Globalization.CultureInfo cInfo = new System.Globalization.CultureInfo(cultureInfo, true);
-            try
-            {
-                return DateTime.ParseExact(IsoDate, formatString, cInfo);
-            }
-            catch (Exception e)
-            {
-                throw new ArgumentException($"Could not parse {IsoDate} as datetime: {e.Message}");
-            }
-
+            string format = time ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd";
+        
+            return DateTime.ParseExact(
+                isoDate,
+                format,
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None);
         }
 
         public static string ToWC3DateTime(this DateTime datetime, bool exact = false) => exact ? datetime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffffffzzz") : datetime.ToUniversalTime().ToString("s") + "Z";
