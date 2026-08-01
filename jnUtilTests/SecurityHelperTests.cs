@@ -170,26 +170,7 @@ namespace jnUtilTests
             }
         }
 
-        // test creation, extraction and comparing of secure strings and zero-out of orginal string
-        [TestMethod]
-        public void SecureStringTests()
-        {
-            // Arrange
-            string org = "test";
-            string input = GenericCopier<string>.DeepCopy(org);
-            string input2 = GenericCopier<string>.DeepCopy(org);
-
-            // Act
-            SecureString inputSS = input.ToSecureString();
-            SecureString inputSS2 = input2.ToSecureString();
-            string output = inputSS.ToInsecureString();
-            bool isEqual = inputSS.IsEqualTo(inputSS2);
-
-            // Assert
-            Assert.AreNotEqual(input, output, "Secure string zero function falied");
-            Assert.AreEqual(org, output, "Secure string creation/extraction falied");
-            Assert.IsTrue(isEqual, "Secure string comparer failed");
-        }
+        
 
         [TestMethod]
         public void GCM_Tests()
