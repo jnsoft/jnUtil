@@ -55,7 +55,7 @@ namespace jnUtil
             DateTime unspecified = DateTime.SpecifyKind(value, DateTimeKind.Unspecified);
             string format = time ? "yyyy-MM-dd HH:mm" : "yyyy-MM-dd";
         
-            return unspecified.ToString(format, CultureInfo.InvariantCulture);
+            return unspecified.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
         }
         
         public static DateTime FromIsoDate(this string isoDate, bool time)
