@@ -61,9 +61,7 @@ namespace jnUtil
             }
             catch (Exception e)
             {
-#if DEBUG
-                Debug.WriteLine("Error: " + e.Message);
-#endif
+                WriteDebug("Error", e);
                 return false;
             }
         }
@@ -89,17 +87,13 @@ namespace jnUtil
                 }
                 catch (CryptographicException cex)
                 {
-#if DEBUG
-                    Debug.WriteLine("Signature is not valid: " + cex.Message);
-#endif
+                    WriteDebug("Signature is not valid", cex);
                     return false;
                 }
             }
             catch (Exception e)
             {
-#if DEBUG
-                Debug.WriteLine("Error: " + e.Message);
-#endif
+                WriteDebug("Error", e);
                 return false;
             }
         }
@@ -130,24 +124,18 @@ namespace jnUtil
                 }
                 catch (Exception innerEx)
                 {
-#if DEBUG
-                    Debug.WriteLine("Certificate not valid: " + innerEx.Message);
-#endif
+                    WriteDebug("Certificate not valid", innerEx);
                     return false;
                 }
             }
             catch (CryptographicException cex)
             {
-#if DEBUG
-                Debug.WriteLine("Signature is not valid: " + cex.Message);
-#endif
+                WriteDebug("Signature is not valid", cex);
                 return false;
             }
             catch (Exception e)
             {
-#if DEBUG
-                Debug.WriteLine("Error: " + e.Message);
-#endif
+                WriteDebug("Error", e);
                 return false;
             }
         }
@@ -164,9 +152,7 @@ namespace jnUtil
             }
             catch (Exception e)
             {
-#if DEBUG
-                Debug.WriteLine("Error: " + e.Message);
-#endif
+                WriteDebug("Error", e);
                 return false;
             }
         }
@@ -182,11 +168,16 @@ namespace jnUtil
             }
             catch (Exception e)
             {
-#if DEBUG
-                Debug.WriteLine("Error: " + e.Message);
-#endif
+                WriteDebug("Error", e);
                 return false;
             }
+        }
+
+        private static void WriteDebug(string message, Exception exception)
+        {
+#if DEBUG
+            Debug.WriteLine($"{message}: {exception.Message}");
+#endif
         }
 
     }
